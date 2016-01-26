@@ -236,81 +236,66 @@
 #pragma mark - Controller handling
 - (void) controllerDidConnect: (NSNotification *) notification
 {
-    NSArray * controllers = [GCController controllers];
-    if (controllers.count > 0)
-    {
-        GCController * gameController = nil;
-        for (GCController * aController in controllers)
-        {
-            if (nil != aController.extendedGamepad)
-            {
-                gameController = aController;
-                break;
-            }
-        }
-
-        if (gameController.playerIndex == 1) {
-            self.controllerTwo = [[CGGameControllerForSNESInterpreter alloc]
-                                  initWithController: gameController];
-        } else if (nil != self.controllerOne) {
-            gameController.playerIndex = 1;
-            self.controllerTwo = [[CGGameControllerForSNESInterpreter alloc]
-                                  initWithController: gameController];
-        } else {
-            gameController.playerIndex = 0;
-            self.controllerOne = [[CGGameControllerForSNESInterpreter alloc]
-                                  initWithController: gameController];
-        }
-    }
-    [self.console connectControllerOne: self.controllerOne];
-    if (nil != self.controllerTwo) {
-        [self.console connectControllerTwo:self.controllerTwo];
-    }
+	NSArray * controllers = [GCController controllers];
+	if (controllers.count > 0)
+	{
+		GCController * gameController = nil;
+		for (GCController * aController in controllers)
+		{
+			gameController = aController;
+			if (![gameController.vendorName isEqualToString:@"Remote"]) {
+				switch (gameController.playerIndex) {
+					case GCControllerPlayerIndex1:
+					{
+						self.controllerOne = [[CGGameControllerForSNESInterpreter alloc]
+											  initWithController: gameController];
+						[self.console connectControllerOne: self.controllerOne];
+					}
+					case GCControllerPlayerIndex2:
+					{
+						self.controllerTwo = [[CGGameControllerForSNESInterpreter alloc]
+											  initWithController: gameController];
+						[self.console connectControllerTwo:self.controllerTwo];
+					}
+					case GCControllerPlayerIndex3:
+					{
+						//				self.controllerThree = [[CGGameControllerForSNESInterpreter alloc]
+						//									  initWithController: gameController];
+						// no support on Apple TV yet
+					}
+					case GCControllerPlayerIndex4:
+					{
+						//				self.controllerFour = [[CGGameControllerForSNESInterpreter alloc]
+						//									  initWithController: gameController];
+						// no support on Apple TV yet
+					}
+					case GCControllerPlayerIndexUnset:
+					{
+						if (self.controllerOne) {
+							gameController.playerIndex = GCControllerPlayerIndex2;
+							self.controllerTwo = [[CGGameControllerForSNESInterpreter alloc]
+												  initWithController: gameController];
+							[self.console connectControllerTwo:self.controllerTwo];
+						} else {
+							gameController.playerIndex = GCControllerPlayerIndex1;
+							self.controllerOne = [[CGGameControllerForSNESInterpreter alloc]
+												  initWithController: gameController];
+							[self.console connectControllerOne:self.controllerOne];
+						}
+					}
+				}
+			}
+		}
+	}
 }
 - (void) controllerDidDisconnect: (NSNotification *) notification
 {
-    // possibile states
-
-    // 1. One controller was connected and is now disconnected
-
-    // 2. two controllers were connected and the second controller is disconnecting
-
-    // 3. two controllers were connected and the first controller is disconnecting
-
-    // 4. two controllers were connected and both controllers are disconnecting
-
-    // 5. inconsistent state
-
-    NSArray * controllers = [GCController controllers];
-    // 1.
-    if (nil == self.controllerTwo && nil != self.controllerOne && controllers.count == 0) {
-        self.controllerOne = nil;
-    }
-    // 2. and 3.
-    else if (nil != self.controllerTwo && nil != self.controllerOne && controllers.count > 0)
-    {
-        self.controllerOne = nil;
-        self.controllerTwo = nil;
-        [self.console connectControllerTwo:nil];
-
-        GCController * gameController = [controllers firstObject];
-        gameController.playerIndex = 0;
-        self.controllerOne = [[CGGameControllerForSNESInterpreter alloc]
-                              initWithController: gameController];
-        [self.console connectControllerOne:self.controllerOne];
-    }
-    // 4.
-    else if (nil != self.controllerTwo && nil != self.controllerOne && controllers.count == 0) {
-        self.controllerOne = nil;
-        self.controllerTwo = nil;
-        [self.console connectControllerTwo:nil];
-    }
-    // 5.
-    else {
-        self.controllerOne = nil;
-        self.controllerTwo = nil;
-        [self.console connectControllerTwo:nil];
-    }
+	self.controllerOne = nil;
+	self.controllerTwo = nil;
+	[self.console connectControllerOne:nil];
+	[self.console connectControllerTwo:nil];
+	
+	[self controllerDidConnect:nil];
 }
 
 @end
